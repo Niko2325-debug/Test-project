@@ -13,7 +13,7 @@ pcall(function() MainGui.Parent = CoreGui end)
 if not MainGui.Parent then MainGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
 ---------------------------------------------------------
--- СИСТЕМА УВЕДОМЛЕНИЙ (ПРАВЫЙ ВЕРХНИЙ УГОЛ)
+-- СИСТЕМА ПЛАВНЫХ УВЕДОМЛЕНИЙ (ПРАВЫЙ ВЕРХНИЙ УГОЛ)
 ---------------------------------------------------------
 local NotifGui = Instance.new("ScreenGui")
 NotifGui.Name = "NikoNotifGui"
@@ -41,9 +41,8 @@ local function createNotification(titleText, descText)
     local box = Instance.new("Frame")
     box.Size = UDim2.new(1, 0, 0, 60)
     box.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    box.BackgroundTransparency = 0.15
+    box.BackgroundTransparency = 1 -- Старт с невидимого для плавного появления
     box.Parent = NotifContainer
-    box.Position = UDim2.new(1.5, 0, 0, 0)
     
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
@@ -58,6 +57,7 @@ local function createNotification(titleText, descText)
     tLbl.TextSize = 14
     tLbl.TextXAlignment = Enum.TextXAlignment.Left
     tLbl.BackgroundTransparency = 1
+    tLbl.TextTransparency = 1
     tLbl.Parent = box
     
     local dLbl = Instance.new("TextLabel")
@@ -70,17 +70,24 @@ local function createNotification(titleText, descText)
     dLbl.TextXAlignment = Enum.TextXAlignment.Left
     dLbl.TextWrapped = true
     dLbl.BackgroundTransparency = 1
+    dLbl.TextTransparency = 1
     dLbl.Parent = box
     
-    local tweenInfoIn = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-    TweenService:Create(box, tweenInfoIn, {Position = UDim2.new(0, 0, 0, 0)}):Play()
+    -- Плавное проявление (Fade In)
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    TweenService:Create(box, tweenInfo, {BackgroundTransparency = 0.15}):Play()
+    TweenService:Create(tLbl, tweenInfo, {TextTransparency = 0}):Play()
+    TweenService:Create(dLbl, tweenInfo, {TextTransparency = 0}):Play()
     
     task.spawn(function()
-        task.wait(3.2)
-        local tweenInfoOut = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
-        local animOut = TweenService:Create(box, tweenInfoOut, {Position = UDim2.new(1.5, 0, 0, 0)})
-        animOut:Play()
-        animOut.Completed:Connect(function() box:Destroy() end)
+        task.wait(3)
+        -- Плавное исчезновение (Fade Out)
+        local tweenOut = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+        local anim = TweenService:Create(box, tweenOut, {BackgroundTransparency = 1})
+        TweenService:Create(tLbl, tweenOut, {TextTransparency = 1}):Play()
+        TweenService:Create(dLbl, tweenOut, {TextTransparency = 1}):Play()
+        anim:Play()
+        anim.Completed:Connect(function() box:Destroy() end)
     end)
 end
 
@@ -126,7 +133,7 @@ local Localization = {
 }
 
 ---------------------------------------------------------
--- ФУНКЦИОНАЛ (FLY, SPIN, BYPASS)
+-- ФУНКЦИОНАЛ (ПЕРЕРАБОТАННЫЙ FLY И NOCLIP)
 ---------------------------------------------------------
 local flyEnabled = false
 local spinEnabled = false
@@ -141,8 +148,8 @@ local origOutdoorAmbient = Lighting.OutdoorAmbient
 local origBrightness = Lighting.Brightness
 local origClockTime = Lighting.ClockTime
 
-local flyMaxForce = Vector3.new(1e9, 1e9, 1e9)
-local flyPVelocity, flyPGyro
+-- Переписанный полет на современных ассет-инстансах Roblox
+local flyLVelocity, flyOrientation, flyAttachment
 
 local function startFly()
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
@@ -150,25 +157,32 @@ local function startFly()
     local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if humanoid then humanoid.PlatformStand = true end
     
-    flyPVelocity = Instance.new("BodyVelocity")
-    flyPVelocity.MaxForce = flyMaxForce
-    flyPVelocity.Velocity = Vector3.new(0, 0, 0)
-    flyPVelocity.Parent = hrp
+    flyAttachment = Instance.new("Attachment")
+    flyAttachment.Name = "FlyAttachment"
+    flyAttachment.Parent = hrp
     
-    flyPGyro = Instance.new("BodyGyro")
-    flyPGyro.MaxTorque = flyMaxForce
-    flyPGyro.CFrame = hrp.CFrame
-    flyPGyro.Parent = hrp
+    flyLVelocity = Instance.new("LinearVelocity")
+    flyLVelocity.MaxForce = math.huge
+    flyLVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+    flyLVelocity.Attachment0 = flyAttachment
+    flyLVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+    flyLVelocity.Parent = hrp
+    
+    flyOrientation = Instance.new("AlignOrientation")
+    flyOrientation.MaxTorque = math.huge
+    flyOrientation.Attachment0 = flyAttachment
+    flyOrientation.Mode = Enum.OrientationMode.OneAttachment
+    flyOrientation.CFrame = hrp.CFrame
+    flyOrientation.Parent = hrp
 end
 
 local function endFly()
-    if flyPVelocity then flyPVelocity:Destroy() flyPVelocity = nil end
-    if flyPGyro then flyPGyro:Destroy() flyPGyro = nil end
+    if flyLVelocity then flyLVelocity:Destroy() flyLVelocity = nil end
+    if flyOrientation then flyOrientation:Destroy() flyOrientation = nil end
+    if flyAttachment then flyAttachment:Destroy() flyAttachment = nil end
+    
     local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if humanoid then humanoid.PlatformStand = false end
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
-    end
 end
 
 RunService.RenderStepped:Connect(function()
@@ -177,10 +191,10 @@ RunService.RenderStepped:Connect(function()
             LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeedValue
         end
     end
-    if flyEnabled and flyPVelocity and flyPGyro and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = LocalPlayer.Character.HumanoidRootPart
+    
+    if flyEnabled and flyLVelocity and flyOrientation and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local camera = workspace.CurrentCamera
-        local moveDirection = Vector3.new(0,0,0)
+        local moveDirection = Vector3.new(0, 0, 0)
         
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camera.CFrame.LookVector end
@@ -189,15 +203,16 @@ RunService.RenderStepped:Connect(function()
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
         
-        flyPGyro.CFrame = camera.CFrame
+        flyOrientation.CFrame = camera.CFrame
         if moveDirection.Magnitude > 0 then 
-            flyPVelocity.Velocity = moveDirection.Unit * flySpeedValue 
+            flyLVelocity.VectorVelocity = moveDirection.Unit * flySpeedValue 
         else 
-            flyPVelocity.Velocity = Vector3.new(0, 0, 0) 
+            flyLVelocity.VectorVelocity = Vector3.new(0, 0, 0) 
         end
     end
 end)
 
+-- Раскрутка
 RunService.Heartbeat:Connect(function()
     if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
@@ -213,14 +228,18 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+-- Исправленный и жесткий Жесткий Ноуклип (Noclip)
 RunService.Stepped:Connect(function()
     if noclipEnabled and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
+            if part:IsA("BasePart") then 
+                part.CanCollide = false 
+            end
         end
     end
 end)
 
+-- Реальный Adonis Античит обход
 local oldNC
 local function toggleRealBypass(state)
     realBypassEnabled = state
@@ -429,7 +448,6 @@ local function createToggle(page, textKey, default, callback)
     lbl.BackgroundTransparency = 1
     lbl.Parent = frame
     
-    -- Обычная чёткая кнопка без всяких ползунков
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 65, 0, 28)
     btn.Position = UDim2.new(1, -70, 0, 6)
@@ -452,7 +470,6 @@ local function createToggle(page, textKey, default, callback)
     end
     updateVisuals()
     
-    -- Один клик — включает, второй клик — выключает!
     btn.MouseButton1Click:Connect(function()
         state = not state
         updateVisuals()
@@ -466,7 +483,6 @@ local function createToggle(page, textKey, default, callback)
     return frame
 end
 
--- Слайдеры только для регулировки скорости
 local function createSlider(page, textKey, min, max, default, callback)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -10, 0, 50)
@@ -540,7 +556,6 @@ end
 -- СБОРКА ЭЛЕМЕНТОВ
 ---------------------------------------------------------
 
--- [MAIN] Выбор языка
 local langBox = Instance.new("Frame")
 langBox.Size = UDim2.new(1, -10, 0, 40)
 langBox.BackgroundTransparency = 1
@@ -567,19 +582,16 @@ langBtn.TextSize = 14
 langBtn.Parent = langBox
 local lC = Instance.new("UICorner") lC.CornerRadius = UDim.new(0, 5) lC.Parent = langBtn
 
--- [MAIN] Тумблер уведомлений
 createToggle(GeneralPage, "notifLabel", true, function(state)
     showNotifs = state
 end)
 
--- [BYPASS] Тумблеры функций (В один клик!)
 createToggle(BypassPage, "fly", false, function(state)
     flyEnabled = state
     if flyEnabled then startFly() else endFly() end
     createNotification(Localization[currentLang].fly, flyEnabled and Localization[currentLang].enabled or Localization[currentLang].disabled)
 end)
 
--- Слайдеры ТОЛЬКО для скорости
 createSlider(BypassPage, "flySpeed", 10, 300, 50, function(v) flySpeedValue = v end)
 createSlider(BypassPage, "walkSpeed", 16, 300, 16, function(v) walkSpeedValue = v end)
 
@@ -684,7 +696,6 @@ langBtn.MouseButton1Click:Connect(function()
     refreshAllTexts()
 end)
 
--- Фиксация света
 task.spawn(function()
     while task.wait(1) do
         if fullBrightEnabled then
