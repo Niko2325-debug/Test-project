@@ -22,7 +22,7 @@ if not NotifGui.Parent then NotifGui.Parent = LocalPlayer:WaitForChild("PlayerGu
 
 local NotifContainer = Instance.new("Frame")
 NotifContainer.Size = UDim2.new(0, 260, 0, 500)
-NotifContainer.Position = UDim2.new(1, -270, 0, 20) -- Строго сверху справа
+NotifContainer.Position = UDim2.new(1, -270, 0, 20)
 NotifContainer.BackgroundTransparency = 1
 NotifContainer.Parent = NotifGui
 
@@ -43,7 +43,7 @@ local function createNotification(titleText, descText)
     box.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     box.BackgroundTransparency = 0.15
     box.Parent = NotifContainer
-    box.Position = UDim2.new(1.5, 0, 0, 0) -- Вылет из-за правого края экрана
+    box.Position = UDim2.new(1.5, 0, 0, 0)
     
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
@@ -141,7 +141,6 @@ local origOutdoorAmbient = Lighting.OutdoorAmbient
 local origBrightness = Lighting.Brightness
 local origClockTime = Lighting.ClockTime
 
--- Механика полёта как в HD Admin
 local flyMaxForce = Vector3.new(1e9, 1e9, 1e9)
 local flyPVelocity, flyPGyro
 
@@ -186,7 +185,7 @@ RunService.RenderStepped:Connect(function()
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection - camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + camera.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
         
@@ -199,7 +198,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Раскрутка
 RunService.Heartbeat:Connect(function()
     if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
@@ -223,7 +221,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Реальный Adonis Античит обход
 local oldNC
 local function toggleRealBypass(state)
     realBypassEnabled = state
@@ -263,7 +260,6 @@ local TopCorner = Instance.new("UICorner")
 TopCorner.CornerRadius = UDim.new(0, 10)
 TopCorner.Parent = TopBar
 
--- Скрипт перетаскивания за TopBar
 local dragToggle, dragStart, startPos
 TopBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -300,7 +296,6 @@ Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 Title.Parent = TopBar
 
--- Кнопка СВЕРНУТЬ (—)
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
 MinimizeBtn.Position = UDim2.new(1, -70, 0, 7)
@@ -311,7 +306,6 @@ MinimizeBtn.TextSize = 18
 MinimizeBtn.Font = Enum.Font.SourceSansBold
 MinimizeBtn.Parent = TopBar
 
--- Кнопка ЗАКРЫТЬ (Буква X без багов)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -35, 0, 7)
@@ -415,7 +409,7 @@ toggleButton.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------
--- КОНСТРУКТОРЫ КЛАССИЧЕСКИХ ТУМБЛЕРОВ (TOGGLES) БЕЗ ТОЧЕК
+-- КОНСТРУКТОРЫ КЛАССИЧЕСКИХ ТУМБЛЕРОВ ОДНИМ НАЖАТИЕМ
 ---------------------------------------------------------
 local updateLanguageElements = {}
 
@@ -435,7 +429,7 @@ local function createToggle(page, textKey, default, callback)
     lbl.BackgroundTransparency = 1
     lbl.Parent = frame
     
-    -- Кнопка тумблера без уродливых цветных кружков
+    -- Обычная чёткая кнопка без всяких ползунков
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 65, 0, 28)
     btn.Position = UDim2.new(1, -70, 0, 6)
@@ -458,6 +452,7 @@ local function createToggle(page, textKey, default, callback)
     end
     updateVisuals()
     
+    -- Один клик — включает, второй клик — выключает!
     btn.MouseButton1Click:Connect(function()
         state = not state
         updateVisuals()
@@ -471,7 +466,7 @@ local function createToggle(page, textKey, default, callback)
     return frame
 end
 
--- Слайдеры оставляем только для ползунков скорости
+-- Слайдеры только для регулировки скорости
 local function createSlider(page, textKey, min, max, default, callback)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -10, 0, 50)
@@ -577,13 +572,14 @@ createToggle(GeneralPage, "notifLabel", true, function(state)
     showNotifs = state
 end)
 
--- [BYPASS] Тумблеры функций
+-- [BYPASS] Тумблеры функций (В один клик!)
 createToggle(BypassPage, "fly", false, function(state)
     flyEnabled = state
     if flyEnabled then startFly() else endFly() end
     createNotification(Localization[currentLang].fly, flyEnabled and Localization[currentLang].enabled or Localization[currentLang].disabled)
 end)
 
+-- Слайдеры ТОЛЬКО для скорости
 createSlider(BypassPage, "flySpeed", 10, 300, 50, function(v) flySpeedValue = v end)
 createSlider(BypassPage, "walkSpeed", 16, 300, 16, function(v) walkSpeedValue = v end)
 
