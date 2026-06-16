@@ -1,47 +1,128 @@
--- Загрузка библиотеки интерфейса Orion
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/ionlyusegithubformodding/ROBLOX-UI-Library/main/Orion/Source.lua')))()
 
--- Создание главного окна с сине-серым оформлением
 local Window = OrionLib:MakeWindow({
     Name = "Universal Script HUB", 
     HidePremium = false, 
     SaveConfig = true, 
     ConfigFolder = "OrionNiko",
-    IntroEnabled = false -- Быстрый старт без долгой заставки
+    IntroEnabled = false
 })
 
--- Стартовое уведомление при запуске скрипта
+local currentLang = "RU"
+
+local Localization = {
+    RU = {
+        welcome = "Добро пожаловать!",
+        scriptBy = "script by Niko_2325",
+        info = "Информация",
+        infoDesc = "Скрипт успешно запущен. Перейдите во вкладку Bypass для управления функциями.",
+        statusOn = "ВКЛ",
+        statusOff = "ВЫКЛ",
+        selectLang = "Выбрать язык / Select Language",
+        walkSpeedName = "Скорость бега / WalkSpeed",
+        flySpeedName = "Скорость полёта / Fly Speed"
+    },
+    EN = {
+        welcome = "Welcome!",
+        scriptBy = "script by Niko_2325",
+        info = "Information",
+        infoDesc = "Script loaded successfully. Go to Bypass tab to manage features.",
+        statusOn = "ON",
+        statusOff = "OFF",
+        selectLang = "Выбрать язык / Select Language",
+        walkSpeedName = "WalkSpeed",
+        flySpeedName = "Fly Speed"
+    }
+}
+
+local function notify(titleKey, textKey, isStatus, state)
+    local title = Localization[currentLang][titleKey] or titleKey
+    local text = ""
+    if isStatus then
+        local status = state and Localization[currentLang].statusOn or Localization[currentLang].statusOff
+        text = titleKey .. ": " .. status
+    else
+        text = Localization[currentLang][textKey] or textKey
+    end
+    
+    OrionLib:MakeNotification({
+        Name = title,
+        Content = text,
+        Image = "rbxassetid://4483345997",
+        Time = 2
+    })
+end
+
 OrionLib:MakeNotification({
     Name = "Universal HUB",
-    Content = "Welcome!",
+    Content = Localization[currentLang].welcome,
     Image = "rbxassetid://4483345997",
     Time = 4
 })
 
----------------------------------------------------------
--- ПЕРЕМЕННЫЕ И ЛОГИКА ФУНКЦИЙ
----------------------------------------------------------
+local CoreGui = game:GetService("CoreGui")
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "NikoMenuToggleGui"
+screenGui.ResetOnSpawn = false
+
+local success, err = pcall(function() screenGui.Parent = CoreGui end)
+if not success then
+    screenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "MenuToggleButton"
+toggleButton.Parent = screenGui
+toggleButton.Size = UDim2.new(0, 100, 0, 40)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Text = "Меню"
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextSize = 18
+toggleButton.BorderSizePixel = 0
+toggleButton.ZIndex = 10000
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 5)
+uiCorner.Parent = toggleButton
+
+local menuVisible = true
+toggleButton.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    if CoreGui:FindFirstChild("Orion") then
+        CoreGui.Orion.Enabled = menuVisible
+    elseif game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Orion") then
+        game:GetService("Players").LocalPlayer.PlayerGui.Orion.Enabled = menuVisible
+    end
+end)
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 
--- Переменные состояний
 local flyEnabled = false
 local spinEnabled = false
 local noclipEnabled = false
 local fullBrightEnabled = false
 local antiCheatEnabled = false
 
--- Оригинальные настройки света для FullBright
+local walkSpeedValue = 16
+local flySpeedValue = 50
+
 local origAmbient = Lighting.Ambient
 local origOutdoorAmbient = Lighting.OutdoorAmbient
 local origBrightness = Lighting.Brightness
 local origClockTime = Lighting.ClockTime
 
--- 1. ЛОГИКА ПОЛЁТА (Fly)
-local flySpeed = 50
 RunService.RenderStepped:Connect(function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        if not flyEnabled then
+            LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeedValue
+        end
+    end
+    
     if flyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
         local camera = workspace.CurrentCamera
@@ -56,25 +137,22 @@ RunService.RenderStepped:Connect(function()
         if uis:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
         
         if moveDirection.Magnitude > 0 then
-            hrp.Velocity = moveDirection.Unit * flySpeed
+            hrp.Velocity = moveDirection.Unit * flySpeedValue
         else
             hrp.Velocity = Vector3.new(0, 0.1, 0)
         end
     end
 end)
 
--- 2. ЛОГИКА РАСКРУТКИ И ОТТАЛКИВАНИЯ (Spin & Push)
 RunService.Heartbeat:Connect(function()
     if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
-        
         hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(45), 0)
         
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 local targetHrp = player.Character.HumanoidRootPart
                 local distance = (hrp.Position - targetHrp.Position).Magnitude
-                
                 if distance < 15 then
                     local direction = (targetHrp.Position - hrp.Position).Unit
                     targetHrp.Velocity = direction * 80 + Vector3.new(0, 35, 0)
@@ -84,7 +162,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 3. ЛОГИКА ПРОХОЖДЕНИЯ СКВОЗЬ СТЕНЫ (No Clip)
 RunService.Stepped:Connect(function()
     if noclipEnabled and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
@@ -95,93 +172,89 @@ RunService.Stepped:Connect(function()
     end
 end)
 
+local GeneralTab = Window:MakeTab({ Name = "General", Icon = "rbxassetid://4483345997", PremiumOnly = false })
+local BypassTab = Window:MakeTab({ Name = "Bypass", Icon = "rbxassetid://4483345997", PremiumOnly = false })
 
----------------------------------------------------------
--- ИНТЕРФЕЙС: ВКЛАДКИ
----------------------------------------------------------
+local authorLabel = GeneralTab:AddLabel(Localization[currentLang].scriptBy)
 
--- Вкладка 1: General (Осталась как ты и просил)
-local GeneralTab = Window:MakeTab({
-    Name = "General",
-    Icon = "rbxassetid://4483345997",
-    PremiumOnly = false
-})
-
-GeneralTab:AddLabel("script by Niko_2325")
-
--- Текстовое поле под твою ссылку на GitHub
 GeneralTab:AddTextbox({
     Name = "GitHub Repository:",
-    Default = "https://github.com/твой_профиль/твой_репозиторий", -- Сюда вставишь реальную ссылку
+    Default = "https://github.com/Niko2325/Test-project",
     TextDisappear = false,
+    Callback = function() end	
+})
+
+local infoParagraph = GeneralTab:AddParagraph(Localization[currentLang].info, Localization[currentLang].infoDesc)
+
+local langDropdown = GeneralTab:AddDropdown({
+    Name = Localization[currentLang].selectLang,
+    Default = "RU",
+    Options = {"RU", "EN"},
     Callback = function(Value)
-        -- Поле для копирования
-    end	
+        currentLang = Value
+        authorLabel:Set(Localization[currentLang].scriptBy)
+        infoParagraph:Set(Localization[currentLang].info, Localization[currentLang].infoDesc)
+    end
 })
 
-GeneralTab:AddParagraph("Информация", "Скрипт успешно запущен. Перейдите во вкладку Bypass для управления функциями.")
-
--- Вкладка 2: Bypass
-local BypassTab = Window:MakeTab({
-    Name = "Bypass",
-    Icon = "rbxassetid://4483345997",
-    PremiumOnly = false
-})
-
--- Тумблер: Полёт
 BypassTab:AddToggle({
-    Name = "Режим полёта (Fly)",
+    Name = "Fly / Полёт",
     Default = false,
     Callback = function(Value)
         flyEnabled = Value
         if not Value and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
         end
-        -- Уведомление статуса
-        OrionLib:MakeNotification({
-            Name = "Fly Мод",
-            Content = Value and "Fly: ON" or "Fly: OFF",
-            Image = "rbxassetid://4483345997",
-            Time = 2
-        })
+        notify(currentLang == "RU" and "Полёт" or "Fly", "", true, Value)
     end
 })
 
--- Тумблер: Раскрутка
+BypassTab:AddSlider({
+    Name = "Скорость полёта / Fly Speed",
+    Min = 10,
+    Max = 300,
+    Default = 50,
+    Color = Color3.fromRGB(0, 120, 255),
+    Increment = 1,
+    ValueName = "speed",
+    Callback = function(Value)
+        flySpeedValue = Value
+    end
+})
+
+BypassTab:AddSlider({
+    Name = "Скорость игрока / WalkSpeed",
+    Min = 16,
+    Max = 300,
+    Default = 16,
+    Color = Color3.fromRGB(0, 120, 255),
+    Increment = 1,
+    ValueName = "speed",
+    Callback = function(Value)
+        walkSpeedValue = Value
+    end
+})
+
 BypassTab:AddToggle({
-    Name = "Раскручивать и отталкивать игроков",
+    Name = "Spin & Push / Раскрутка",
     Default = false,
     Callback = function(Value)
         spinEnabled = Value
-        -- Уведомление статуса
-        OrionLib:MakeNotification({
-            Name = "Spin & Push",
-            Content = Value and "Spin & Push: ON" or "Spin & Push: OFF",
-            Image = "rbxassetid://4483345997",
-            Time = 2
-        })
+        notify(currentLang == "RU" and "Раскрутка" or "Spin & Push", "", true, Value)
     end
 })
 
--- Тумблер: No Clip
 BypassTab:AddToggle({
-    Name = "Проход сквозь стены (No Clip)",
+    Name = "No Clip / Сквозь стены",
     Default = false,
     Callback = function(Value)
         noclipEnabled = Value
-        -- Уведомление статуса
-        OrionLib:MakeNotification({
-            Name = "No Clip",
-            Content = Value and "No Clip: ON" or "No Clip: OFF",
-            Image = "rbxassetid://4483345997",
-            Time = 2
-        })
+        notify(currentLang == "RU" and "Сквозь стены" or "No Clip", "", true, Value)
     end
 })
 
--- Тумблер: FullBright
 BypassTab:AddToggle({
-    Name = "Видеть в темноте (FullBright)",
+    Name = "FullBright / Свет в темноте",
     Default = false,
     Callback = function(Value)
         fullBrightEnabled = Value
@@ -196,17 +269,10 @@ BypassTab:AddToggle({
             Lighting.Brightness = origBrightness
             Lighting.ClockTime = origClockTime
         end
-        -- Уведомление статуса
-        OrionLib:MakeNotification({
-            Name = "FullBright",
-            Content = Value and "FullBright: ON" or "FullBright: OFF",
-            Image = "rbxassetid://4483345997",
-            Time = 2
-        })
+        notify(currentLang == "RU" and "Свет в темноте" or "FullBright", "", true, Value)
     end
 })
 
--- Поддержание освещения FullBright
 task.spawn(function()
     while task.wait(1) do
         if fullBrightEnabled then
@@ -217,9 +283,8 @@ task.spawn(function()
     end
 end)
 
--- Тумблер: Античит байпасс
 BypassTab:AddToggle({
-    Name = "Античит байпасс (Anti-Cheat Bypass)",
+    Name = "Anti-Cheat Bypass / Античит",
     Default = false,
     Callback = function(Value)
         antiCheatEnabled = Value
@@ -239,15 +304,8 @@ BypassTab:AddToggle({
                 end
             end)
         end
-        -- Уведомление статуса
-        OrionLib:MakeNotification({
-            Name = "Anti-Cheat Bypass",
-            Content = Value and "Bypass: ON" or "Bypass: OFF",
-            Image = "rbxassetid://4483345997",
-            Time = 2
-        })
+        notify(currentLang == "RU" and "Античит" or "Anti-Cheat", "", true, Value)
     end
 })
 
--- Запуск интерфейса
 OrionLib:Init()
