@@ -21,8 +21,8 @@ pcall(function() NotifGui.Parent = CoreGui end)
 if not NotifGui.Parent then NotifGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
 local NotifContainer = Instance.new("Frame")
-NotifContainer.Size = UDim2.new(0, 260, 0, 400)
-NotifContainer.Position = UDim2.new(1, -270, 0, 60) -- Сверху справа
+NotifContainer.Size = UDim2.new(0, 260, 0, 500)
+NotifContainer.Position = UDim2.new(1, -270, 0, 20) -- Строго сверху справа
 NotifContainer.BackgroundTransparency = 1
 NotifContainer.Parent = NotifGui
 
@@ -43,7 +43,7 @@ local function createNotification(titleText, descText)
     box.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     box.BackgroundTransparency = 0.15
     box.Parent = NotifContainer
-    box.Position = UDim2.new(1.5, 0, 0, 0) -- Изначально за экраном справа
+    box.Position = UDim2.new(1.5, 0, 0, 0) -- Вылет из-за правого края экрана
     
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
@@ -72,7 +72,6 @@ local function createNotification(titleText, descText)
     dLbl.BackgroundTransparency = 1
     dLbl.Parent = box
     
-    -- Вылет из-за угла
     local tweenInfoIn = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
     TweenService:Create(box, tweenInfoIn, {Position = UDim2.new(0, 0, 0, 0)}):Play()
     
@@ -86,7 +85,7 @@ local function createNotification(titleText, descText)
 end
 
 ---------------------------------------------------------
--- ЛОКАЛИЗАЦИЯ И ПЕРЕВОДЫ (СТРОГИЕ БЕЗ СЛЭШЕЙ)
+-- ЛОКАЛИЗАЦИЯ И ПЕРЕВОДЫ
 ---------------------------------------------------------
 local currentLang = "RU"
 local Localization = {
@@ -127,7 +126,7 @@ local Localization = {
 }
 
 ---------------------------------------------------------
--- ПЕРЕМЕННЫЕ И ЛОГИКА ФУНКЦИЙ
+-- ФУНКЦИОНАЛ (FLY, SPIN, BYPASS)
 ---------------------------------------------------------
 local flyEnabled = false
 local spinEnabled = false
@@ -142,7 +141,7 @@ local origOutdoorAmbient = Lighting.OutdoorAmbient
 local origBrightness = Lighting.Brightness
 local origClockTime = Lighting.ClockTime
 
--- Функция Полета (Как в HD Admin)
+-- Механика полёта как в HD Admin
 local flyMaxForce = Vector3.new(1e9, 1e9, 1e9)
 local flyPVelocity, flyPGyro
 
@@ -187,7 +186,7 @@ RunService.RenderStepped:Connect(function()
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection - camera.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
         
@@ -200,11 +199,11 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Бешеная Раскрутка
+-- Раскрутка
 RunService.Heartbeat:Connect(function()
     if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
-        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(90), 0) -- Скорость вращения увеличена х2
+        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(90), 0)
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 local targetHrp = player.Character.HumanoidRootPart
@@ -224,7 +223,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- РЕАЛЬНЫЙ АНТИЧИТ БАЙПАСС ADONIS
+-- Реальный Adonis Античит обход
 local oldNC
 local function toggleRealBypass(state)
     realBypassEnabled = state
@@ -242,7 +241,7 @@ local function toggleRealBypass(state)
 end
 
 ---------------------------------------------------------
--- СОЗДАНИЕ ИНТЕРФЕЙСА С ПЕРЕМЕЩЕНИЕМ И КНОПКАМИ ШАПКИ
+-- ИНТЕРФЕЙС И ДРАГ
 ---------------------------------------------------------
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 440, 0, 320)
@@ -255,7 +254,6 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 10)
 MainCorner.Parent = MainFrame
 
--- Верхняя панель (TopBar) - ДЛЯ ПЕРЕМЕЩЕНИЯ
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 45)
 TopBar.BackgroundColor3 = Color3.fromRGB(22, 22, 32)
@@ -265,7 +263,7 @@ local TopCorner = Instance.new("UICorner")
 TopCorner.CornerRadius = UDim.new(0, 10)
 TopCorner.Parent = TopBar
 
--- Скрипт плавного перетаскивания (Drag) за TopBar
+-- Скрипт перетаскивания за TopBar
 local dragToggle, dragStart, startPos
 TopBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -313,18 +311,17 @@ MinimizeBtn.TextSize = 18
 MinimizeBtn.Font = Enum.Font.SourceSansBold
 MinimizeBtn.Parent = TopBar
 
--- Кнопка ЗАКРЫТЬ (X)
+-- Кнопка ЗАКРЫТЬ (Буква X без багов)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -35, 0, 7)
 CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "✕"
+CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 75, 75)
 CloseBtn.TextSize = 16
 CloseBtn.Font = Enum.Font.SourceSansBold
 CloseBtn.Parent = TopBar
 
--- Боковая панель
 local TabsFrame = Instance.new("Frame")
 TabsFrame.Size = UDim2.new(0, 110, 1, -45)
 TabsFrame.Position = UDim2.new(0, 0, 0, 45)
@@ -359,9 +356,6 @@ genList.Parent = GeneralPage
 local bypList = genList:Clone()
 bypList.Parent = BypassPage
 
----------------------------------------------------------
--- КНОПКИ ТАБОВ (СТРОГО НА АНГЛИЙСКОМ, БЕЗ ЗНАЧКОВ)
----------------------------------------------------------
 local GenTabBtn = Instance.new("TextButton")
 GenTabBtn.Size = UDim2.new(1, 0, 0, 45)
 GenTabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 35)
@@ -388,7 +382,7 @@ BypTabBtn.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------
--- МАЛЕНЬКАЯ КНОПКА МЕНЮ (МЕНЮ ТУМБЛЕР)
+-- МАЛЕНЬКАЯ КНОПКА МЕНЮ
 ---------------------------------------------------------
 local toggleGui = Instance.new("ScreenGui")
 toggleGui.Name = "NikoMenuToggleGui"
@@ -421,8 +415,63 @@ toggleButton.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------
--- ШАБЛОНЫ НАСТОЯЩИХ СЛАЙДЕРОВ (ПОЛЗУНКОВ)
+-- КОНСТРУКТОРЫ КЛАССИЧЕСКИХ ТУМБЛЕРОВ (TOGGLES) БЕЗ ТОЧЕК
 ---------------------------------------------------------
+local updateLanguageElements = {}
+
+local function createToggle(page, textKey, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 0, 40)
+    frame.BackgroundTransparency = 1
+    frame.Parent = page
+    
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -75, 1, 0)
+    lbl.Text = Localization[currentLang][textKey]
+    lbl.TextColor3 = Color3.fromRGB(230, 230, 240)
+    lbl.Font = Enum.Font.SourceSansBold
+    lbl.TextSize = 14
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.BackgroundTransparency = 1
+    lbl.Parent = frame
+    
+    -- Кнопка тумблера без уродливых цветных кружков
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 65, 0, 28)
+    btn.Position = UDim2.new(1, -70, 0, 6)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 12
+    btn.Parent = frame
+    local bC = Instance.new("UICorner") bC.CornerRadius = UDim.new(0, 5) bC.Parent = btn
+    
+    local state = default
+    local function updateVisuals()
+        if state then
+            btn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+            btn.Text = "ON"
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            btn.Text = "OFF"
+            btn.TextColor3 = Color3.fromRGB(160, 160, 170)
+        end
+    end
+    updateVisuals()
+    
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        updateVisuals()
+        callback(state)
+    end)
+    
+    table.insert(updateLanguageElements, function()
+        lbl.Text = Localization[currentLang][textKey]
+    end)
+    
+    return frame
+end
+
+-- Слайдеры оставляем только для ползунков скорости
 local function createSlider(page, textKey, min, max, default, callback)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -10, 0, 50)
@@ -439,37 +488,27 @@ local function createSlider(page, textKey, min, max, default, callback)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = frame
     
-    -- Рейка
     local track = Instance.new("Frame")
     track.Size = UDim2.new(1, -10, 0, 6)
     track.Position = UDim2.new(0, 5, 0, 28)
     track.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
     track.BorderSizePixel = 0
     track.Parent = frame
-    local tCorner = Instance.new("UICorner")
-    tCorner.CornerRadius = UDim.new(0, 3)
-    tCorner.Parent = track
+    local tCorner = Instance.new("UICorner") tCorner.CornerRadius = UDim.new(0, 3) tCorner.Parent = track
     
-    -- Заполнение полоски цветом
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
     fill.BorderSizePixel = 0
     fill.Parent = track
-    local fCorner = Instance.new("UICorner")
-    fCorner.CornerRadius = UDim.new(0, 3)
-    fCorner.Parent = fill
     
-    -- Реальный Ползунок, который перетаскивается пальцем/мышкой
     local thumb = Instance.new("TextButton")
-    thumb.Size = UDim2.new(0, 14, 0, 14)
-    thumb.Position = UDim2.new((default - min) / (max - min), -7, 0.5, -7)
+    thumb.Size = UDim2.new(0, 12, 0, 12)
+    thumb.Position = UDim2.new((default - min) / (max - min), -6, 0.5, -6)
     thumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     thumb.Text = ""
     thumb.Parent = track
-    local thCorner = Instance.new("UICorner")
-    thCorner.CornerRadius = UDim.new(1, 0)
-    thCorner.Parent = thumb
+    local thCorner = Instance.new("UICorner") thCorner.CornerRadius = UDim.new(1, 0) thCorner.Parent = thumb
     
     local dragging = false
     local currentVal = default
@@ -480,7 +519,7 @@ local function createSlider(page, textKey, min, max, default, callback)
         local percentage = math.clamp(mouseX / totalWidth, 0, 1)
         
         fill.Size = UDim2.new(percentage, 0, 1, 0)
-        thumb.Position = UDim2.new(percentage, -7, 0.5, -7)
+        thumb.Position = UDim2.new(percentage, -6, 0.5, -6)
         
         currentVal = math.floor(min + (max - min) * percentage)
         lbl.Text = Localization[currentLang][textKey] .. ": " .. currentVal
@@ -488,34 +527,25 @@ local function createSlider(page, textKey, min, max, default, callback)
     end
     
     thumb.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            updateSlider(input)
-        end
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end
     end)
     UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
     end)
     
-    -- Функция обновления текста слайдера при смене языка
-    local function updateText()
+    table.insert(updateLanguageElements, function()
         lbl.Text = Localization[currentLang][textKey] .. ": " .. currentVal
-    end
-    
-    return frame, updateText
+    end)
 end
 
 ---------------------------------------------------------
--- СБОРКА ЭЛЕМЕНТОВ НА СТРАНИЦАХ
+-- СБОРКА ЭЛЕМЕНТОВ
 ---------------------------------------------------------
 
--- [MAIN] Выбор Языка
+-- [MAIN] Выбор языка
 local langBox = Instance.new("Frame")
 langBox.Size = UDim2.new(1, -10, 0, 40)
 langBox.BackgroundTransparency = 1
@@ -542,33 +572,33 @@ langBtn.TextSize = 14
 langBtn.Parent = langBox
 local lC = Instance.new("UICorner") lC.CornerRadius = UDim.new(0, 5) lC.Parent = langBtn
 
--- [MAIN] Тумблер Уведомлений через Ползунок (Слайдер 0-1)
-local _, updateNotifSlider = createSlider(GeneralPage, "notifLabel", 0, 1, 1, function(v)
-    showNotifs = (v == 1)
+-- [MAIN] Тумблер уведомлений
+createToggle(GeneralPage, "notifLabel", true, function(state)
+    showNotifs = state
 end)
 
--- [BYPASS] Качественные Ползунки Функций
-local _, updateFlySlider = createSlider(BypassPage, "fly", 0, 1, 0, function(v)
-    flyEnabled = (v == 1)
+-- [BYPASS] Тумблеры функций
+createToggle(BypassPage, "fly", false, function(state)
+    flyEnabled = state
     if flyEnabled then startFly() else endFly() end
     createNotification(Localization[currentLang].fly, flyEnabled and Localization[currentLang].enabled or Localization[currentLang].disabled)
 end)
 
-local _, updateFlySpeed = createSlider(BypassPage, "flySpeed", 10, 300, 50, function(v) flySpeedValue = v end)
-local _, updateWalkSpeed = createSlider(BypassPage, "walkSpeed", 16, 300, 16, function(v) walkSpeedValue = v end)
+createSlider(BypassPage, "flySpeed", 10, 300, 50, function(v) flySpeedValue = v end)
+createSlider(BypassPage, "walkSpeed", 16, 300, 16, function(v) walkSpeedValue = v end)
 
-local _, updateSpinSlider = createSlider(BypassPage, "spin", 0, 1, 0, function(v)
-    spinEnabled = (v == 1)
+createToggle(BypassPage, "spin", false, function(state)
+    spinEnabled = state
     createNotification(Localization[currentLang].spin, spinEnabled and Localization[currentLang].enabled or Localization[currentLang].disabled)
 end)
 
-local _, updateNoclipSlider = createSlider(BypassPage, "noclip", 0, 1, 0, function(v)
-    noclipEnabled = (v == 1)
+createToggle(BypassPage, "noclip", false, function(state)
+    noclipEnabled = state
     createNotification(Localization[currentLang].noclip, noclipEnabled and Localization[currentLang].enabled or Localization[currentLang].disabled)
 end)
 
-local _, updateBrightSlider = createSlider(BypassPage, "bright", 0, 1, 0, function(v)
-    fullBrightEnabled = (v == 1)
+createToggle(BypassPage, "bright", false, function(state)
+    fullBrightEnabled = state
     if fullBrightEnabled then
         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
         Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
@@ -580,9 +610,8 @@ local _, updateBrightSlider = createSlider(BypassPage, "bright", 0, 1, 0, functi
     createNotification(Localization[currentLang].bright, fullBrightEnabled and Localization[currentLang].enabled or Localization[currentLang].disabled)
 end)
 
--- РЕАЛЬНЫЙ АНТИЧИТ ТУМБЛЕР (ПОЛЗУНОК)
-local _, updateBypassSlider = createSlider(BypassPage, "bypassActive", 0, 1, 0, function(v)
-    toggleRealBypass(v == 1)
+createToggle(BypassPage, "bypassActive", false, function(state)
+    toggleRealBypass(state)
     createNotification(Localization[currentLang].bypassActive, realBypassEnabled and Localization[currentLang].enabled or Localization[currentLang].disabled)
 end)
 
@@ -642,7 +671,7 @@ OkBtn.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------
--- ОБНОВЛЕНИЕ ЯЗЫКОВЫХ СТРУКТУР В ОДИН КЛИК
+-- ОБНОВЛЕНИЕ ТЕКСТОВ ПРИ СМЕНЕ ЯЗЫКА
 ---------------------------------------------------------
 local function refreshAllTexts()
     lLabel.Text = Localization[currentLang].langLabel
@@ -650,14 +679,7 @@ local function refreshAllTexts()
     OkBtn.Text = Localization[currentLang].ok
     CancelBtn.Text = Localization[currentLang].cancel
     
-    updateNotifSlider()
-    updateFlySlider()
-    updateFlySpeed()
-    updateWalkSpeed()
-    updateSpinSlider()
-    updateNoclipSlider()
-    updateBrightSlider()
-    updateBypassSlider()
+    for _, f in pairs(updateLanguageElements) do f() end
 end
 
 langBtn.MouseButton1Click:Connect(function()
@@ -677,6 +699,5 @@ task.spawn(function()
     end
 end)
 
--- Запуск локализации и приветствие
 refreshAllTexts()
 createNotification("Niko HUB", Localization[currentLang].welcome)
