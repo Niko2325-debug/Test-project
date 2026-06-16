@@ -4,16 +4,100 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 MainGui.Name = "AbysallStyleHub"
 MainGui.ResetOnSpawn = false
 pcall(function() MainGui.Parent = CoreGui end)
 if not MainGui.Parent then MainGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
--- Главное окно
+-- СИСТЕМА УВЕДОМЛЕНИЙ (NOTIFICATIONS)
+local NotifGui = Instance.new("ScreenGui")
+NotifGui.Name = "NikoNotifGui"
+pcall(function() NotifGui.Parent = CoreGui end)
+if not NotifGui.Parent then NotifGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+local NotifList = Instance.new("UIListLayout")
+NotifList.Padding = UDim.new(0, 5)
+NotifList.SortOrder = Enum.SortOrder.LayoutOrder
+NotifList.VerticalAlignment = Enum.VerticalAlignment.Bottom
+NotifList.HorizontalAlignment = Enum.HorizontalAlignment.Right
+
+local NotifContainer = Instance.new("Frame")
+NotifContainer.Size = UDim2.new(0, 250, 1, -20)
+NotifContainer.Position = UDim2.new(1, -260, 0, 10)
+NotifContainer.BackgroundTransparency = 1
+NotifContainer.Parent = NotifGui
+NotifList.Parent = NotifContainer
+
+local showNotifs = true
+
+local function createNotification(titleText, descText)
+    if not showNotifs then return end
+    local box = Instance.new("Frame")
+    box.Size = UDim2.new(1, 0, 0, 60)
+    box.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    box.BackgroundTransparency = 1
+    box.Parent = NotifContainer
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = box
+    
+    local tLbl = Instance.new("TextLabel")
+    tLbl.Size = UDim2.new(1, -10, 0, 20)
+    tLbl.Position = UDim2.new(0, 10, 0, 5)
+    tLbl.Text = titleText
+    tLbl.TextColor3 = Color3.fromRGB(0, 150, 255)
+    tLbl.Font = Enum.Font.SourceSansBold
+    tLbl.TextSize = 14
+    tLbl.TextXAlignment = Enum.TextXAlignment.Left
+    tLbl.BackgroundTransparency = 1
+    tLbl.Parent = box
+    
+    local dLbl = Instance.new("TextLabel")
+    dLbl.Size = UDim2.new(1, -10, 0, 30)
+    dLbl.Position = UDim2.new(0, 10, 0, 25)
+    dLbl.Text = descText
+    dLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    dLbl.Font = Enum.Font.SourceSans
+    dLbl.TextSize = 13
+    dLbl.TextXAlignment = Enum.TextXAlignment.Left
+    dLbl.TextWrapped = true
+    dLbl.BackgroundTransparency = 1
+    dLbl.Parent = box
+    
+    TweenService:Create(box, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+    task.spawn(function()
+        task.wait(3.5)
+        local t = TweenService:Create(box, TweenInfo.new(0.3), {BackgroundTransparency = 1})
+        t:Play()
+        t.Completed:Connect(function() box:Destroy() end)
+    end)
+end
+
+-- ВСТРОЕННЫЙ ОБХОД АНТИЧИТА ADONIS
+local function initAdonisBypass()
+    local g = getgenv and getgenv()
+    if g then
+        g.AdonisBypass = true
+        local oldNC
+        oldNC = hookmetamethod(game, "__namecall", function(self, ...)
+            local method = getnamecallmethod()
+            if method == "Kick" or method == "Crash" then
+                return nil
+            end
+            return oldNC(self, ...)
+        end)
+    end
+end
+initAdonisBypass()
+
+-- ГЛАВНОЕ ОКНО
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 420, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -210, 0.5, -155)
+MainFrame.Size = UDim2.new(0, 440, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -220, 0.5, -160)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -43,9 +127,9 @@ TitleIcon.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -80, 1, 0)
 Title.Position = UDim2.new(0, 42, 0, 0)
-Title.Text = "Niko HUB"
+Title.Text = "Niko HUB | script by Niko_2325"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 18
+Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
@@ -60,28 +144,28 @@ TabsFrame.Parent = MainFrame
 
 -- Контейнер для страниц функций
 local ContentFrame = Instance.new("Frame")
-ContentFrame.Size = UDim2.new(1, -110, 1, -45)
-ContentFrame.Position = UDim2.new(0, 110, 0, 45)
+ContentFrame.Size = UDim2.new(1, -120, 1, -55)
+ContentFrame.Position = UDim2.new(0, 115, 0, 50)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
 local GeneralPage = Instance.new("ScrollingFrame")
 GeneralPage.Size = UDim2.new(1, 0, 1, 0)
 GeneralPage.BackgroundTransparency = 1
-GeneralPage.CanvasSize = UDim2.new(0, 0, 1.5, 0)
+GeneralPage.CanvasSize = UDim2.new(0, 0, 1.2, 0)
 GeneralPage.ScrollBarThickness = 3
 GeneralPage.Parent = ContentFrame
 
 local BypassPage = Instance.new("ScrollingFrame")
 BypassPage.Size = UDim2.new(1, 0, 1, 0)
 BypassPage.BackgroundTransparency = 1
-BypassPage.CanvasSize = UDim2.new(0, 0, 1.8, 0)
+BypassPage.CanvasSize = UDim2.new(0, 0, 2.2, 0)
 BypassPage.ScrollBarThickness = 3
 BypassPage.Visible = false
 BypassPage.Parent = ContentFrame
 
 local genList = Instance.new("UIListLayout")
-genList.Padding = UDim.new(0, 10)
+genList.Padding = UDim.new(0, 8)
 genList.SortOrder = Enum.SortOrder.LayoutOrder
 genList.Parent = GeneralPage
 local bypList = genList:Clone()
@@ -90,27 +174,37 @@ bypList.Parent = BypassPage
 local currentLang = "RU"
 local Localization = {
     RU = {
-        langLabel = "Выбрать язык / Select Language",
-        fly = "Fly / Полёт",
-        spin = "Spin & Push / Раскрутка",
-        noclip = "No Clip / Сквозь стены",
-        bright = "FullBright / Свет в темноте",
+        langLabel = "Выбрать язык",
+        notifLabel = "Уведомления",
+        fly = "Полёт",
+        spin = "Раскрутка игроков",
+        noclip = "Сквозь стены",
+        bright = "Свет в темноте",
         flySpeed = "Скорость полёта",
-        walkSpeed = "Скорость игрока"
+        walkSpeed = "Скорость игрока",
+        bypassActive = "Античит обход активен",
+        welcome = "Скрипт успешно загружен!",
+        enabled = "Включено",
+        disabled = "Выключено"
     },
     EN = {
         langLabel = "Select Language",
+        notifLabel = "Notifications",
         fly = "Fly Mode",
         spin = "Spin & Push Players",
-        noclip = "No Clip (Walls)",
-        bright = "FullBright (Light)",
+        noclip = "No Clip",
+        bright = "FullBright",
         flySpeed = "Fly Speed",
-        walkSpeed = "WalkSpeed"
+        walkSpeed = "WalkSpeed",
+        bypassActive = "Anti-Cheat Bypass Active",
+        welcome = "Script loaded successfully!",
+        enabled = "Enabled",
+        disabled = "Disabled"
     }
 }
 
 ---------------------------------------------------------
--- СОЗДАНИЕ КНОПОК ВКЛАДОК
+-- СОЗДАНИЕ КНОПОК ВКЛАДОК (ВСЕГДА НА АНГЛИЙСКОМ)
 ---------------------------------------------------------
 local GenTabBtn = Instance.new("TextButton")
 GenTabBtn.Size = UDim2.new(1, 0, 0, 45)
@@ -182,7 +276,7 @@ toggleButton.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------
--- ЛОГИКА ТВОИХ ФУНКЦИЙ
+-- НАСТРОЙКА ПЕРЕМЕННЫХ И ЛОГИКА ФУНКЦИЙ
 ---------------------------------------------------------
 local flyEnabled = false
 local spinEnabled = false
@@ -196,24 +290,55 @@ local origOutdoorAmbient = Lighting.OutdoorAmbient
 local origBrightness = Lighting.Brightness
 local origClockTime = Lighting.ClockTime
 
+local flyBodyVel, flyBodyGyro
+
+local function startFly()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = LocalPlayer.Character.HumanoidRootPart
+    
+    flyBodyVel = Instance.new("BodyVelocity")
+    flyBodyVel.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    flyBodyVel.Velocity = Vector3.new(0, 0.1, 0)
+    flyBodyVel.Parent = hrp
+    
+    flyBodyGyro = Instance.new("BodyGyro")
+    flyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+    flyBodyGyro.CFrame = hrp.CFrame
+    flyBodyGyro.Parent = hrp
+end
+
+local function endFly()
+    if flyBodyVel then flyBodyVel:Destroy() flyBodyVel = nil end
+    if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+    end
+end
+
 RunService.RenderStepped:Connect(function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         if not flyEnabled and LocalPlayer.Character.Humanoid.WalkSpeed ~= walkSpeedValue then
             LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeedValue
         end
     end
-    if flyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    if flyEnabled and flyBodyVel and flyBodyGyro and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
         local camera = workspace.CurrentCamera
         local moveDirection = Vector3.new(0,0,0)
-        local uis = game:GetService("UserInputService")
-        if uis:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camera.CFrame.LookVector end
-        if uis:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camera.CFrame.LookVector end
-        if uis:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - camera.CFrame.RightVector end
-        if uis:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + camera.CFrame.RightVector end
-        if uis:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
-        if uis:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
-        if moveDirection.Magnitude > 0 then hrp.Velocity = moveDirection.Unit * flySpeedValue else hrp.Velocity = Vector3.new(0, 0.1, 0) end
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
+        
+        flyBodyGyro.CFrame = camera.CFrame
+        if moveDirection.Magnitude > 0 then 
+            flyBodyVel.Velocity = moveDirection.Unit * flySpeedValue 
+        else 
+            flyBodyVel.Velocity = Vector3.new(0, 0.1, 0) 
+        end
     end
 end)
 
@@ -241,10 +366,11 @@ RunService.Stepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- ЗАПОЛНЕНИЕ СТРАНИЦ КНОПКАМИ И ДИЗАЙНОМ
+-- ОПТИМИЗИРОВАННЫЕ ЭЛЕМЕНТЫ ИНТЕРФЕЙСА
 ---------------------------------------------------------
 
--- [ВКЛАДКА MAIN (Только смена языков)]
+-- [СТРАНИЦА MAIN]
+-- Выбор языка
 local langBox = Instance.new("Frame")
 langBox.Size = UDim2.new(1, -20, 0, 40)
 langBox.BackgroundTransparency = 1
@@ -269,11 +395,63 @@ langBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 langBtn.Font = Enum.Font.SourceSansBold
 langBtn.TextSize = 14
 langBtn.Parent = langBox
-local lCorner = Instance.new("UICorner") or Instance.new("UICorner", langBtn)
+local lCorner = Instance.new("UICorner")
 lCorner.CornerRadius = UDim.new(0, 5)
 lCorner.Parent = langBtn
 
--- [ВКЛАДКА BYPASS (Наши тумблеры)]
+-- Управление уведомлениями
+local notifBox = Instance.new("Frame")
+notifBox.Size = UDim2.new(1, -20, 0, 40)
+notifBox.BackgroundTransparency = 1
+notifBox.Parent = GeneralPage
+
+local nLabel = Instance.new("TextLabel")
+nLabel.Size = UDim2.new(0, 200, 1, 0)
+nLabel.Text = Localization[currentLang].notifLabel
+nLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+nLabel.Font = Enum.Font.SourceSansBold
+nLabel.TextSize = 14
+nLabel.TextXAlignment = Enum.TextXAlignment.Left
+nLabel.BackgroundTransparency = 1
+nLabel.Parent = notifBox
+
+local notifToggleBtn = Instance.new("TextButton")
+notifToggleBtn.Size = UDim2.new(0, 70, 0, 30)
+notifToggleBtn.Position = UDim2.new(1, -70, 0, 5)
+notifToggleBtn.BackgroundColor3 = Color3.fromRGB(70, 255, 70)
+notifToggleBtn.Text = "ON"
+notifToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+notifToggleBtn.Font = Enum.Font.SourceSansBold
+notifToggleBtn.TextSize = 14
+notifToggleBtn.Parent = notifBox
+local nBCorner = Instance.new("UICorner")
+nBCorner.CornerRadius = UDim.new(0, 5)
+nBCorner.Parent = notifToggleBtn
+
+notifToggleBtn.MouseButton1Click:Connect(function()
+    showNotifs = not showNotifs
+    if showNotifs then
+        notifToggleBtn.BackgroundColor3 = Color3.fromRGB(70, 255, 70)
+        notifToggleBtn.Text = "ON"
+    else
+        notifToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+        notifToggleBtn.Text = "OFF"
+    end
+end)
+
+
+-- АНТИЧИТ ТЕКСТ-ИНДИКАТОР В BYPASS
+local bypassTextLabel = Instance.new("TextLabel")
+bypassTextLabel.Size = UDim2.new(1, -20, 0, 30)
+bypassTextLabel.Text = "🛡️ " .. Localization[currentLang].bypassActive
+bypassTextLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+bypassTextLabel.Font = Enum.Font.SourceSansBold
+bypassTextLabel.TextSize = 15
+bypassTextLabel.TextXAlignment = Enum.TextXAlignment.Center
+bypassTextLabel.BackgroundTransparency = 1
+bypassTextLabel.Parent = BypassPage
+
+-- [СТРАНИЦА BYPASS: ТУМБЛЕРЫ И ПОЛЗУНКИ]
 local function createToggle(textKey, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 40)
@@ -304,16 +482,18 @@ local function createToggle(textKey, callback)
         callback(enabled)
         if enabled then
             indicator.BackgroundColor3 = Color3.fromRGB(70, 255, 70)
+            createNotification(Localization[currentLang][textKey], Localization[currentLang].enabled)
         else
             indicator.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+            createNotification(Localization[currentLang][textKey], Localization[currentLang].disabled)
         end
     end)
-    return btn, indicator
+    return btn
 end
 
 local function createSlider(textKey, min, max, default, callback)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -20, 0, 50)
+    frame.Size = UDim2.new(1, -20, 0, 55)
     frame.BackgroundTransparency = 1
     frame.Parent = BypassPage
     
@@ -322,48 +502,87 @@ local function createSlider(textKey, min, max, default, callback)
     lbl.Text = Localization[currentLang][textKey] .. ": " .. default
     lbl.TextColor3 = Color3.fromRGB(200, 200, 220)
     lbl.BackgroundTransparency = 1
-    lbl.Font = Enum.Font.SourceSans
+    lbl.Font = Enum.Font.SourceSansBold
     lbl.TextSize = 14
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = frame
     
-    local sliderBtn = Instance.new("TextButton")
-    sliderBtn.Size = UDim2.new(1, 0, 0, 10)
-    sliderBtn.Position = UDim2.new(0, 0, 0, 25)
-    sliderBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-    sliderBtn.Text = ""
-    sliderBtn.Parent = frame
-    local sCorner = Instance.new("UICorner")
-    sCorner.CornerRadius = UDim.new(0, 4)
-    sCorner.Parent = sliderBtn
+    -- Рейка трека ползунка
+    local track = Instance.new("Frame")
+    track.Size = UDim2.new(1, -10, 0, 6)
+    track.Position = UDim2.new(0, 5, 0, 30)
+    track.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    track.BorderSizePixel = 0
+    track.Parent = frame
+    local tCorner = Instance.new("UICorner")
+    tCorner.CornerRadius = UDim.new(0, 3)
+    tCorner.Parent = track
     
+    -- Заполнение трека цветом
     local fill = Instance.new("Frame")
-    fill.Size = UDim2.new((default-min)/(max-min), 0, 1, 0)
+    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
     fill.BorderSizePixel = 0
-    fill.Parent = sliderBtn
+    fill.Parent = track
     local fCorner = Instance.new("UICorner")
-    fCorner.CornerRadius = UDim.new(0, 4)
+    fCorner.CornerRadius = UDim.new(0, 3)
     fCorner.Parent = fill
     
-    sliderBtn.MouseButton1Click:Connect(function()
-        local mouse = LocalPlayer:GetMouse()
-        local percent = math.clamp((mouse.X - sliderBtn.AbsolutePosition.X) / sliderBtn.AbsoluteSize.X, 0, 1)
-        fill.Size = UDim2.new(percent, 0, 1, 0)
-        local val = math.floor(min + (max - min) * percent)
-        lbl.Text = Localization[currentLang][textKey] .. ": " .. val
-        callback(val)
+    -- Подвижный Круглый Ползунок-шарик
+    local thumb = Instance.new("TextButton")
+    thumb.Size = UDim2.new(0, 16, 0, 16)
+    thumb.Position = UDim2.new((default - min) / (max - min), -8, 0.5, -8)
+    thumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    thumb.Text = ""
+    thumb.Parent = track
+    local thCorner = Instance.new("UICorner")
+    thCorner.CornerRadius = UDim.new(1, 0)
+    thCorner.Parent = thumb
+    
+    local dragging = false
+    
+    local function updateSlider(input)
+        local totalWidth = track.AbsoluteSize.X
+        local mouseX = input.Position.X - track.AbsolutePosition.X
+        local percentage = math.clamp(mouseX / totalWidth, 0, 1)
+        
+        fill.Size = UDim2.new(percentage, 0, 1, 0)
+        thumb.Position = UDim2.new(percentage, -8, 0.5, -8)
+        
+        local value = math.floor(min + (max - min) * percentage)
+        lbl.Text = Localization[currentLang][textKey] .. ": " .. value
+        callback(value)
+    end
+    
+    thumb.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+        end
     end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateSlider(input)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
     return frame, lbl
 end
 
-local flyToggle, flyInd = createToggle("fly", function(v) flyEnabled = v if not v and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0) end end)
+-- Инициализация всех элементов
+local flyToggle = createToggle("fly", function(v) flyEnabled = v if v then startFly() else endFly() end end)
 local _, flySlLabel = createSlider("flySpeed", 10, 300, 50, function(v) flySpeedValue = v end)
 local _, walkSlLabel = createSlider("walkSpeed", 16, 300, 16, function(v) walkSpeedValue = v end)
-local spinToggle, spinInd = createToggle("spin", function(v) spinEnabled = v end)
-local noclipToggle, noclipInd = createToggle("noclip", function(v) noclipEnabled = v end)
+local spinToggle = createToggle("spin", function(v) spinEnabled = v end)
+local noclipToggle = createToggle("noclip", function(v) noclipEnabled = v end)
 
-local brightToggle, brightInd = createToggle("bright", function(v)
+local brightToggle = createToggle("bright", function(v)
     fullBrightEnabled = v
     if v then
         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
@@ -378,19 +597,28 @@ local brightToggle, brightInd = createToggle("bright", function(v)
     end
 end)
 
-langBtn.MouseButton1Click:Connect(function()
-    if currentLang == "RU" then currentLang = "EN" else currentLang = "RU" end
-    langBtn.Text = currentLang
+-- Полное обновление текстов при языковой мутации (без слэшей)
+local function refreshLocalization()
     lLabel.Text = Localization[currentLang].langLabel
+    nLabel.Text = Localization[currentLang].notifLabel
+    bypassTextLabel.Text = "🛡️ " .. Localization[currentLang].bypassActive
     
     flyToggle.Text = "   " .. Localization[currentLang].fly
     spinToggle.Text = "   " .. Localization[currentLang].spin
     noclipToggle.Text = "   " .. Localization[currentLang].noclip
     brightToggle.Text = "   " .. Localization[currentLang].bright
+    
     flySlLabel.Text = Localization[currentLang].flySpeed .. ": " .. flySpeedValue
     walkSlLabel.Text = Localization[currentLang].walkSpeed .. ": " .. walkSpeedValue
+end
+
+langBtn.MouseButton1Click:Connect(function()
+    if currentLang == "RU" then currentLang = "EN" else currentLang = "RU" end
+    langBtn.Text = currentLang
+    refreshLocalization()
 end)
 
+-- Постоянная фиксация света
 task.spawn(function()
     while task.wait(1) do
         if fullBrightEnabled then
@@ -400,3 +628,7 @@ task.spawn(function()
         end
     end
 end)
+
+-- ПРИВЕТСТВЕННОЕ УВЕДОМЛЕНИЕ ПРИ СТАРТЕ
+refreshLocalization()
+createNotification("Niko HUB", Localization[currentLang].welcome)
