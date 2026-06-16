@@ -1,10 +1,9 @@
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/ionlyusegithubformodding/ROBLOX-UI-Library/main/Orion/Source.lua')))()
+local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/ionlyusegithubformodding/ROBLOX-UI-Library/main/Orion/Source.lua'))()
 
 local Window = OrionLib:MakeWindow({
     Name = "Universal Script HUB", 
     HidePremium = false, 
-    SaveConfig = true, 
-    ConfigFolder = "OrionNiko",
+    SaveConfig = false, 
     IntroEnabled = false
 })
 
@@ -53,14 +52,11 @@ local function notify(titleKey, textKey, isStatus, state)
     })
 end
 
-OrionLib:MakeNotification({
-    Name = "Universal HUB",
-    Content = Localization[currentLang].welcome,
-    Image = "rbxassetid://4483345997",
-    Time = 4
-})
-
 local CoreGui = game:GetService("CoreGui")
+if CoreGui:FindFirstChild("NikoMenuToggleGui") then
+    CoreGui.NikoMenuToggleGui:Destroy()
+end
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NikoMenuToggleGui"
 screenGui.ResetOnSpawn = false
@@ -73,27 +69,26 @@ end
 local toggleButton = Instance.new("TextButton")
 toggleButton.Name = "MenuToggleButton"
 toggleButton.Parent = screenGui
-toggleButton.Size = UDim2.new(0, 100, 0, 40)
-toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.Size = UDim2.new(0, 90, 0, 35)
+toggleButton.Position = UDim2.new(0, 15, 0, 15)
 toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.Text = "Меню"
 toggleButton.Font = Enum.Font.SourceSansBold
-toggleButton.TextSize = 18
+toggleButton.TextSize = 16
 toggleButton.BorderSizePixel = 0
 toggleButton.ZIndex = 10000
 
 local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 5)
+uiCorner.CornerRadius = UDim.new(0, 6)
 uiCorner.Parent = toggleButton
 
 local menuVisible = true
 toggleButton.MouseButton1Click:Connect(function()
     menuVisible = not menuVisible
-    if CoreGui:FindFirstChild("Orion") then
-        CoreGui.Orion.Enabled = menuVisible
-    elseif game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Orion") then
-        game:GetService("Players").LocalPlayer.PlayerGui.Orion.Enabled = menuVisible
+    local targetGui = CoreGui:FindFirstChild("Orion") or game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Orion")
+    if targetGui then
+        targetGui.Enabled = menuVisible
     end
 end)
 
@@ -106,7 +101,6 @@ local flyEnabled = false
 local spinEnabled = false
 local noclipEnabled = false
 local fullBrightEnabled = false
-local antiCheatEnabled = false
 
 local walkSpeedValue = 16
 local flySpeedValue = 50
@@ -118,7 +112,7 @@ local origClockTime = Lighting.ClockTime
 
 RunService.RenderStepped:Connect(function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        if not flyEnabled then
+        if not flyEnabled and LocalPlayer.Character.Humanoid.WalkSpeed ~= walkSpeedValue then
             LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeedValue
         end
     end
@@ -283,29 +277,5 @@ task.spawn(function()
     end
 end)
 
-BypassTab:AddToggle({
-    Name = "Anti-Cheat Bypass / Античит",
-    Default = false,
-    Callback = function(Value)
-        antiCheatEnabled = Value
-        if antiCheatEnabled then
-            pcall(function()
-                local g = getrawmetatable(game)
-                if g then
-                    setreadonly(g, false)
-                    local old = g.__index
-                    g.__index = newcclosure(function(self, key)
-                        if antiCheatEnabled and tostring(self) == "HumanoidRootPart" and (key == "Velocity" or key == "CFrame") then
-                            return old(self, key) 
-                        end
-                        return old(self, key)
-                    end)
-                    setreadonly(g, true)
-                end
-            end)
-        end
-        notify(currentLang == "RU" and "Античит" or "Anti-Cheat", "", true, Value)
-    end
-})
-
 OrionLib:Init()
+notify("Universal HUB", "welcome", false)
